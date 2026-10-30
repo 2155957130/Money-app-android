@@ -1,0 +1,11 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="cn.zhangben.paw.test">
+  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35" />
+  <application android:label="Money 测试"><provider android:name="cn.zhangben.paw.TestDocuments" android:authorities="cn.zhangben.paw.test.documents" android:exported="true" android:grantUriPermissions="true" android:permission="android.permission.MANAGE_DOCUMENTS"><intent-filter><action android:name="android.content.action.DOCUMENTS_PROVIDER" /></intent-filter></provider></application>
+  <instrumentation android:name="cn.zhangben.paw.NativeSmoke" android:targetPackage="cn.zhangben.paw" android:label="Money 原生验证" />
+  <instrumentation android:name="cn.zhangben.paw.SeedV1" android:targetPackage="cn.zhangben.paw" android:label="旧版升级测试数据" />
+  <instrumentation android:name="cn.zhangben.paw.PrivacySmoke" android:targetPackage="cn.zhangben.paw" android:label="隐私与备份测试" />
+  <instrumentation android:name="cn.zhangben.paw.FundProbe" android:targetPackage="cn.zhangben.paw" android:label="基金联网探测" />
+  <instrumentation android:name="cn.zhangben.paw.WechatDemo" android:targetPackage="cn.zhangben.paw" android:label="零钱通演示数据" />
+  <instrumentation android:name="cn.zhangben.paw.SeedPending" android:targetPackage="cn.zhangben.paw" android:label="待确认利息演示" />
+  <instrumentation android:name="cn.zhangben.paw.IncomeProbe" android:targetPackage="cn.zhangben.paw" android:label="收入保存探测" />
+</manifest>

@@ -1,0 +1,66 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
+const C=require('../app/src/main/assets/finance.js'),Legacy=require('../app/src/main/assets/core.js');
+const root=path.resolve(__dirname,'../app/src/main/assets'),out=path.resolve(__dirname,'../dist/previews-1.3-regression');fs.mkdirSync(out,{recursive:true});
+(async()=>{
+  const browser=await chromium.launch({headless:true,executablePath:process.env.BROWSER_EXECUTABLE||'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+  const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
+  await page.emulateMedia({reducedMotion:'reduce'});await page.clock.install({time:new Date()});
+  const errors=[];page.on('pageerror',e=>errors.push(e.stack));
+  const url=pathToFileURL(path.join(root,'index.html')).href;
+  const tab=async name=>page.locator(`[data-tab="${name}"]`).click();
+  const submit=async name=>page.locator(`#${name} button[type="submit"]`).click();
+  const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('zhangben-state')));
+  const confirmAll=(s,asOf)=>{let n=s;for(const p of [...(s.pendingInterest||[])].sort((a,b)=>a.date.localeCompare(b.date)))n=C.confirmInterest(n,p.id,asOf);return n;};
+  const shot=async name=>page.screenshot({path:path.join(out,name+'.png'),fullPage:false,style:'#toast{display:none!important}'});
+  try{
+    await page.goto(url);await page.getByRole('heading',{name:'记一笔',exact:true}).waitFor();
+    await page.locator('[data-action="balances"]').first().click();await page.locator('[name="savings"]').fill('12000');await page.locator('[name="free"]').fill('3500');await submit('balances-form');
+    await page.locator('#entry-amount').fill('28.50');await page.locator('#entry-form [name="note"]').fill('午后的一杯咖啡');await submit('entry-form');
+    await page.locator('[data-action="kind"][data-id="income"]').click();await page.locator('[data-action="bucket"][data-id="savings"]').click();await page.locator('#entry-amount').fill('800');await page.locator('#entry-form [name="note"]').fill('兼职收入');await submit('entry-form');
+    assert.deepEqual(C.balances(await saved()),{savings:1280000,free:347150});
+    await page.locator('[data-action="transaction"]').filter({hasText:'兼职收入'}).click();await page.locator('#note-form textarea').fill('兼职收入 · 已到账');await submit('note-form');
+    assert.equal((await saved()).transactions.at(-1).note,'兼职收入 · 已到账');
+    assert.equal(await page.locator('[data-action="transaction"]').filter({hasText:'兼职收入'}).locator('.record-value').evaluate(el=>getComputedStyle(el).color),'rgb(32, 131, 89)');
+    assert.equal(await page.locator('[data-action="transaction"]').filter({hasText:'午后'}).locator('.record-value').evaluate(el=>getComputedStyle(el).color),'rgb(211, 87, 72)');
+    await tab('mine');await page.locator('[data-action="accounts"][data-id="savings"]').click();await page.locator('[data-action="edit-account"][data-id="savings-main"]').click();
+    await page.locator('#account-form [name="name"]').fill('招商银行卡');await page.locator('#account-form [name="mode"]').selectOption('annual');await page.locator('[name="rate"]').fill('1.5');await submit('account-form');
+    await page.locator('[data-action="accounts"][data-id="savings"]').click();await page.locator('[data-action="new-account"]').click();
+    await page.locator('#account-form [name="name"]').fill('微信');await page.locator('#account-form [name="balance"]').fill('3000');await page.locator('[name="sourceId"]').selectOption('savings-main');await page.locator('#account-form [name="mode"]').selectOption('formula');await page.locator('[name="rate"]').fill('3.65');await page.locator('[name="formula"]').fill('本金 * 利率 / 基数 + 0.1');await submit('account-form');
+    const wechat=(await saved()).accounts.find(a=>a.name==='微信').id;
+    assert.equal(C.accountBalances(await saved())[wechat],300000);assert.equal(C.accountBalances(await saved())['savings-main'],980000);assert.deepEqual(C.balances(await saved()),{savings:1280000,free:347150});
+    await page.locator('[data-action="accounts"][data-id="savings"]').click();await shot('02-明细账户');await page.getByRole('button',{name:'关闭',exact:true}).click();await shot('01-我的');
+    await tab('calculator');assert.equal(await page.locator('.bottom-nav .active').innerText(),'分配');assert.equal(await page.locator('#allocation-total').inputValue(),'16271.50');
+    assert.equal(await page.locator('.allocation-result').first().locator('strong').innerText(),'¥11,390.05');
+    await page.locator('[name="count"]').fill('11');await page.locator('[name="count"]').press('Tab');assert.equal(await page.locator('.allocation-row').count(),11);
+    await page.locator('[name="count"]').fill('3');await page.locator('[name="count"]').press('Tab');assert.equal(await page.locator('.allocation-row').count(),3);
+    await page.locator('[name="percent-0"]').fill('25');await page.locator('[name="percent-1"]').fill('25');await page.locator('[name="name-2"]').fill('旅行');await page.locator('[name="percent-2"]').fill('50');
+    assert.equal(await page.locator('.allocation-result').count(),3);assert.deepEqual(C.balances(await saved()),{savings:1280000,free:347150});await shot('03-分配');
+    await page.locator('[name="source"]').selectOption('custom');await page.locator('[name="total"]').fill('10000');assert.equal(await page.locator('.allocation-result').last().locator('strong').innerText(),'¥5,000.00');
+    await page.locator('[name="source"]').selectOption('total');
+    await tab('plans');await page.locator('[data-action="new-plan"]').first().click();await page.locator('#plan-form [name="name"]').fill('给自己一场旅行');await page.locator('[name="target"]').fill('500');await page.locator('[name="daily"]').fill('50');await submit('plan-form');
+    await page.locator('[data-action="contribute"]').click();await page.locator('#contribute-form [name="amount"]').fill('250');await submit('contribute-form');
+    assert.equal(C.progress((await saved()).plans[0],await saved()),25000);
+    await page.locator('[data-action="contribute"]').click();await page.locator('#contribute-form [name="amount"]').fill('250');await submit('contribute-form');assert(C.complete((await saved()).plans[0],await saved()));
+    await tab('ledger');await page.locator('[data-action="kind"][data-id="expense"]').click();await page.locator('[data-action="bucket"][data-id="savings"]').click();await page.locator('#entry-amount').fill('100');await submit('entry-form');
+    assert.equal(C.progress((await saved()).plans[0],await saved()),40000);assert(!C.complete((await saved()).plans[0],await saved()));
+    await tab('plans');await page.getByText('正在积攒',{exact:true}).waitFor();await shot('04-计划联动');
+    await tab('ledger');await page.locator('[data-action="kind"][data-id="income"]').click();await page.locator('#entry-amount').fill('100');await submit('entry-form');
+    await tab('calculator');assert.equal(await page.locator('#allocation-total').inputValue(),'16271.50');
+    const before=await saved(),nextDate=C.addDays(C.today(),1),pending=C.settle(before,nextDate);await page.clock.setSystemTime(new Date(nextDate+'T12:00:00'));await page.evaluate(()=>window.onNativeResume());
+    assert.equal((await saved()).pendingInterest.length,2);await tab('ledger');await page.locator('[data-action="confirm-all-interest"]').click();await tab('calculator');const expected=confirmAll(pending,nextDate);
+    assert.deepEqual(C.balances(await saved()),C.balances(expected));assert.equal((await saved()).transactions.filter(t=>t.kind==='interest').length,2);
+    const once=await saved();await page.evaluate(()=>window.onNativeResume());assert.deepEqual(await saved(),once);
+    assert.equal(await page.locator('#allocation-total').inputValue(),C.raw(C.balances(expected).savings+C.balances(expected).free));
+    await tab('ledger');assert((await page.locator('#monthly-report').innerText()).includes(C.money(C.balances(expected).savings+C.balances(expected).free)));await shot('05-收益同步');
+    await page.reload();await tab('mine');assert((await page.locator('.hero-amount').innerText()).includes(C.money(C.balances(expected).savings+C.balances(expected).free)));
+    const original=await saved();await page.evaluate(s=>window.onBackupImport(JSON.stringify(s)),original);await page.locator('#confirm-action').click();const restored=await saved();assert.deepEqual(C.balances(restored),C.balances(original));assert.equal(restored.allocation.rows.length,3);
+    await page.evaluate(()=>window.onBackupImport('{"version":999}'));assert.deepEqual(await saved(),restored);
+    await page.setViewportSize({width:320,height:700});for(const name of ['ledger','calculator','plans','mine']){await tab(name);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'overflow: '+name);}
+    // A separate browser profile verifies legacy upgrade migration with existing balances and notes.
+    const oldPage=await browser.newPage();let old=Legacy.setBalances(Legacy.blank(),100000,50000);old=Legacy.transact(old,{kind:'expense',bucket:'free',amount:2850,note:'升级保留备注'});
+    await oldPage.addInitScript(value=>localStorage.setItem('zhangben-state',value),JSON.stringify(old));await oldPage.goto(url);await oldPage.getByRole('heading',{name:'记一笔',exact:true}).waitFor();
+    const migrated=await oldPage.evaluate(()=>JSON.parse(localStorage.getItem('zhangben-state')));assert.equal(migrated.version,2);assert.deepEqual(C.balances(migrated),Legacy.balances(old));assert.equal(migrated.transactions.at(-1).note,'升级保留备注');await oldPage.close();
+    assert.deepEqual(errors,[]);console.log('UI PASS: live automatic allocations, 1–11 custom items, persisted ratios, detail account splitting, custom formula UI, unified ledger/plan/assets, daily catch-up, reload, backup, v1 migration and 320px layout.');
+  }finally{await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});

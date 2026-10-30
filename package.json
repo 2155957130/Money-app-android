@@ -1,0 +1,13 @@
+﻿{
+  "name": "money",
+  "version": "1.8.11",
+  "private": true,
+  "description": "Money：本地记账、金额分配、存钱计划与资产管理",
+  "scripts": {
+    "test": "node --test tests/core.test.cjs tests/finance.test.cjs tests/insights.test.cjs tests/fees.test.cjs tests/interest-delete.test.cjs tests/fund.test.cjs tests/account-delete.test.cjs",
+    "test:ui": "node tests/entry-submit.test.cjs && node tests/ui.test.cjs && node tests/account-delete-ui.test.cjs && node tests/fund-status-ui.test.cjs && node tests/tag-share-ui.test.cjs",
+    "test:features": "node tests/features-ui.test.cjs",
+    "build": "python tools/build.py",
+    "preview": "python -m http.server 4173 --bind 127.0.0.1 --directory app/src/main/assets"
+  }
+}
