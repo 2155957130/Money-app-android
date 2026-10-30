@@ -1,9 +1,0 @@
-{
-  "file": "Money-1.8.11.apk",
-  "package": "cn.zhangben.paw",
-  "version": "1.8.11",
-  "minAndroid": "8.0",
-  "targetSdk": 35,
-  "bytes": 87072,
-  "sha256": "11a165595e45ecf817b6344e604e420dc3db3a2b61e28f93fbef010f6af768dd"
-}
