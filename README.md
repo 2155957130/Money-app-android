@@ -6,6 +6,20 @@
 
 公开官网：[账本 Money](https://zhangben-money-app.lunarbrook4.chatgpt.site)。官网静态页面位于 `docs/`，也可用 GitHub Pages 从 `main` 分支的 `/docs` 目录发布。公开仓库仅在 `docs/downloads/` 保存一份 APK；`dist/` 是本地构建产物，不上传。网站介绍为静态内容，不会上传或读取用户的记账数据。
 
+## 网站管理后台（本地待部署）
+
+`server/analytics.py` 可同时提供 `docs/` 官网与 `/admin/` 只读管理页。它以北京时间记录每日首页浏览请求和 APK 下载请求，显示总量、今日、近 7 天、近 30 天及各安装包下载量。统计从该服务启用后开始，无法追溯此前的 Sites 访问，也不能代表独立访客或实际安装人数。它不读取应用中的账本数据。
+
+本地运行示例（PowerShell）：
+
+```powershell
+$env:MONEY_ADMIN_USER = 'admin'
+$env:MONEY_ADMIN_PASSWORD = '请换成至少12位的强密码'
+python server/analytics.py
+```
+
+浏览 `http://127.0.0.1:8080/` 查看官网，`http://127.0.0.1:8080/admin/` 查看数据。数据库默认位于 `server/data/stats.sqlite3`，已排除 Git 上传；可用 `MONEY_STATS_DB` 指定独立持久目录。部署到阿里云时，先将域名的 HTTPS 反向代理指向仅监听 `127.0.0.1:8080` 的服务，并给 `/admin/` 设置额外访问限制与登录限速；不要直接把 8080 端口暴露到公网。服务器尚未部署，现有公开官网不会产生这里的统计数据。
+
 ## 安装和升级
 
 支持 Android 8.0 及以上，需使用已更新的 Android System WebView / Chrome。将 APK 传到手机并打开，按系统提示允许该来源安装。
