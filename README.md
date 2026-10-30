@@ -4,7 +4,7 @@
 
 ## 官网
 
-官网静态页面位于 `docs/`，可用 GitHub Pages 从 `main` 分支的 `/docs` 目录发布。下载按钮提供与 `dist/Money-1.8.11.apk` 相同的安装包。网站介绍为静态内容，不会上传或读取用户的记账数据。
+公开官网：[账本 Money](https://zhangben-money-app.lunarbrook4.chatgpt.site)。官网静态页面位于 `docs/`，也可用 GitHub Pages 从 `main` 分支的 `/docs` 目录发布。下载按钮提供与 `dist/Money-1.8.11.apk` 相同的安装包。网站介绍为静态内容，不会上传或读取用户的记账数据。
 
 ## 安装和升级
 
