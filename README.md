@@ -2,6 +2,9 @@
 
 [下载最新版 APK](https://github.com/2155957130/Money-app-android/releases/download/v1.8.11/Money-1.8.11.apk)
 
+##使用说明
+https://blog.csdn.net/2402_86763128/article/details/170135785?spm=1001.2014.3001.5501
+
 ## 记账
 
 - 手动记录收入、支出，选择存款或自由账户，填写日期、备注和自定义标签。
